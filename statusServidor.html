@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+    <p id="status-json">Carregando...</p>
+
+    <script>
+        // Função para fazer a solicitação AJAX
+        function getStatusJson() {
+            var icecastUrl = "http://streaming.ufg.br:8000/status.xsl";
+
+            var xhttp = new XMLHttpRequest();
+            
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    // Converte o XML para JSON
+                    var dataJson = xmlToJson(this.responseXML);
+
+                    // Exibe o JSON na página
+                    document.getElementById("status-json").innerText = JSON.stringify(dataJson, null, 2);
+                }
+                
+            };
+            xhttp.open("GET", icecastUrl, true);
+            xhttp.send();
+        }
+
+        // Função para converter XML para JSON
+        function xmlToJson(xml) {
+            var obj = {};
+
+            if (xml.nodeType == 1) {
+                if (xml.attributes.length > 0) {
+                    obj["@attributes"] = {};
+                    for (var j = 0; j < xml.attributes.length; j++) {
+                        var attribute = xml.attributes.item(j);
+                        obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+                    }
+                }
+            } else if (xml.nodeType == 3) {
+                obj = xml.nodeValue.trim();
+            }
+
+            if (xml.hasChildNodes()) {
+                for (var i = 0; i < xml.childNodes.length; i++) {
+                    var item = xml.childNodes.item(i);
+                    var nodeName = item.nodeName;
+
+                    if (typeof(obj[nodeName]) == "undefined") {
+                        obj[nodeName] = xmlToJson(item);
+                    } else {
+                        if (typeof(obj[nodeName].push) == "undefined") {
+                            var old = obj[nodeName];
+                            obj[nodeName] = [];
+                            obj[nodeName].push(old);
+                        }
+                        obj[nodeName].push(xmlToJson(item));
+                    }
+                }
+            }
+            return obj;
+        }
+        getStatusJson();
+        setInterval(getStatusJson, 1000);
+    </script>
+</body>
+</html>
